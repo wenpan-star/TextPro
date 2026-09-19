@@ -3,26 +3,24 @@
  * main.js — 引导入口
  * ============================================================================
  *
- * 【本次重构说明】
+ * 【本次重构说明 — 配置持久化 / 内容不持久化】
  *
- *   一、控制台打印修正
- *     · 持久化权限为 'unknown' 且 STORAGE_PERSIST_DEFERRED = true 时，
- *       显示 "申请中（待首次交互）" 而非赤裸裸的 "unknown"。
- *       避免开发/调试时困惑。
+ *   一、移除文本区初始值应用
+ *     · 文本不再持久化 → 启动时无需从 AppState 回填 textarea
+ *     · DOM 中 textarea 默认就是空，天然满足"每次打开从空文本开始"
  *
- *   二、错误边界降级 UI
- *     · initializeApplication 失败时，不仅显示 toast，
- *       还在页面上渲染一个降级提示卡，便于用户查看错误并重试。
+ *   二、移除启动时的搜索刷新
+ *     · 搜索词不再持久化 → 启动时搜索框必为空，无需触发搜索
  *
- *   三、页面生命周期补强
- *     · visibilitychange(hidden) + pagehide 双绑定保留
- *     · 页面重新可见时允许再次触发保存
- *     · 显式检查 beforeunload 是否已挂载（避免重复注册）
+ *   三、启动 toast 文案调整
+ *     · "已恢复上次编辑状态" → "已恢复规则与设置（文本始终从空白开始）"
+ *     · skipped 分支的文案同步调整，避免对用户产生误导
  *
  *   四、保留全部既有能力
- *     · 启动 toast 精确化
- *     · 数据库连接关闭
- *     · 页面卸载清理
+ *     · 控制台版本信息
+ *     · 错误边界降级 UI
+ *     · visibilitychange + pagehide 双绑定
+ *     · 持久化权限申请状态可读描述
  * ============================================================================
  */
 
@@ -65,7 +63,7 @@ import {
 // ============================================================================
 
 async function initializeApplication() {
-    // ---- 1. 加载持久化状态 ----
+    // ---- 1. 加载持久化状态（仅规则、预设、界面偏好）----
     let loadResult = { loaded: false, reason: 'default' };
     try {
         loadResult = await loadStateOnStartup();
@@ -86,23 +84,27 @@ async function initializeApplication() {
     // ---- 5. 绑定 UI 事件 ----
     bindAllUiEvents();
 
-    // ---- 6. 应用文本区初始值 ----
-    if (DOM.sourceTextarea && AppState.sourceText) {
-        DOM.sourceTextarea.value = AppState.sourceText;
-    }
-    if (DOM.resultTextarea && AppState.resultText) {
-        DOM.resultTextarea.value = AppState.resultText;
-    }
+    // ★ 修订：原先的"应用文本区初始值"整段移除
+    //   文本不再持久化 → 启动时 textarea 天然为空，无需回填。
+    //   若未来重新启用文本持久化，请在此处恢复：
+    //     if (DOM.sourceTextarea && AppState.sourceText) {
+    //         DOM.sourceTextarea.value = AppState.sourceText;
+    //     }
+    //     if (DOM.resultTextarea && AppState.resultText) {
+    //         DOM.resultTextarea.value = AppState.resultText;
+    //     }
 
-    // ---- 7. 刷新搜索结果 ----
-    if (DOM.resultSearchInput && DOM.resultSearchInput.value.trim() !== '') {
-        updateSearchMatches();
-    }
+    // ★ 修订：原先的"刷新搜索结果"整段移除
+    //   搜索词不再持久化 → 启动时搜索框必为空，无需触发搜索。
+    //   若未来重新启用搜索词持久化，请在此处恢复：
+    //     if (DOM.resultSearchInput && DOM.resultSearchInput.value.trim() !== '') {
+    //         updateSearchMatches();
+    //     }
 
-    // ---- 8. 调度一次自动保存 ----
+    // ---- 6. 调度一次自动保存（写入配置，不包含文本）----
     scheduleAutoSave();
 
-    // ---- 9. 顶部指示器同步 ----
+    // ---- 7. 顶部指示器同步 ----
     syncDarkModeToggleButtonText();
     updateStorageUnavailableBanner();
     updatePersistentStorageBanner();
@@ -110,13 +112,13 @@ async function initializeApplication() {
     updateBatchRunButtonLabel();
     updateActivePresetIndicator();
 
-    // ---- 10. 启动完成提示 ----
+    // ---- 8. 启动完成提示 ----
     displayStartupToast(loadResult);
 
-    // ---- 11. 控制台版本信息 ----
+    // ---- 9. 控制台版本信息 ----
     printStartupVersionInfo();
 
-    // ---- 12. 页面生命周期处理 ----
+    // ---- 10. 页面生命周期处理 ----
     bindPageLifecycleEvents();
 }
 
@@ -181,25 +183,36 @@ function bindPageLifecycleEvents() {
 // 启动 toast
 // ============================================================================
 
+/**
+ * 显示启动提示。
+ *
+ * ★ 修订：文案与"配置持久化 / 内容不持久化"的新设计保持一致。
+ *
+ *   新语义：
+ *     · loaded=true        → 恢复了规则与设置（文本始终从空白开始）
+ *     · reason='skipped'   → 用户主动关闭恢复 → 使用默认配置
+ *     · reason='storage_unavailable' → 存储不可用（顶部横幅已提示）
+ *     · reason='default'   → 首次访问
+ */
 function displayStartupToast(loadResult) {
     const result = loadResult || {};
     const loaded = result.loaded === true;
     const reason = result.reason || 'default';
 
     if (loaded) {
-        showToast('已恢复上次编辑状态');
+        showToast('已恢复规则与设置（文本始终从空白开始）');
         return;
     }
 
     if (reason === 'skipped') {
-        let message = '已按设置跳过状态恢复，从空文本开始';
-        // 只在权限已授予时，才承诺"旧快照仍在本地"
+        let message = '已按设置使用默认配置（文本始终从空白开始）';
+        // 只在权限已授予时，才承诺"旧配置仍在本地"
         if (AppState.persistentStorageGranted === 'granted') {
             message +=
-                '（旧快照仍在本地，重新勾选"启动时自动恢复上次状态"并刷新即可恢复）';
+                '（旧配置仍在本地，重新勾选"启动时恢复规则与设置"并刷新即可恢复）';
         } else {
             message +=
-                '（旧快照可能已被浏览器清理，建议重新勾选后刷新查看）';
+                '（旧配置可能已被浏览器清理，建议重新勾选后刷新查看）';
         }
         showToast(message);
         return;
@@ -273,6 +286,11 @@ function printStartupVersionInfo() {
         '%c JS 信任模型：' + (CONFIG.JS_TRUST_RULE_BASED
             ? '按规则信任'
             : '按会话信任'),
+        'color:#6b7280;'
+    );
+
+    console.log(
+        '%c 持久化策略：配置持久化（规则/预设/界面偏好）· 内容不持久化（文本/搜索词）',
         'color:#6b7280;'
     );
 

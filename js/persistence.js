@@ -1,24 +1,30 @@
 /**
  * ============================================================================
- * persistence.js — 自动保存调度 + 完整 UI 状态采集 / 应用
+ * persistence.js — 自动保存调度 + 用户配置持久化
  * ============================================================================
  *
- * 【本次重构说明】
+ * 【本次重构说明 — 配置持久化 / 内容不持久化】
  *
- *   一、Firefox 友好的持久化权限申请
- *     · loadStateOnStartup 不再直接 await requestPersistentStorage()。
- *     · 改用 attachPersistentStorageDeferredTrigger，等待用户首次交互后申请。
- *     · 若 CONFIG.STORAGE_PERSIST_DEFERRED === false，则立即申请（Chrome 友好）。
+ *   一、设计原则
+ *     · 参考 Notepad++ / VS Code / regex101 等同类产品的成熟做法：
+ *         用户配置（规则、预设、界面偏好）→ 跨会话保留
+ *         工作内容（源文本、结果文本、搜索输入）→ 不持久化
  *
- *   二、applyFullUiState 微任务渲染改进
- *     · 使用 Promise.resolve().then 而非同时调用 import().then。
- *     · 避免与 main.js 中的同步 renderRuleTable 冲突导致少渲染一次。
+ *   二、collectFullUiState 调整
+ *     · 移除 sourceText / resultText —— 文本不再进入加密状态
+ *     · 移除 searchInput / searchCase —— 搜索词与文本强绑定，不持久化
+ *     · 保留全部其余字段
  *
- *   三、保留全部既有能力
- *     · 保存并发保护
- *     · 保存失败通知
+ *   三、applyFullUiState 调整
+ *     · 移除文本恢复逻辑（包括对旧快照中 sourceText / resultText 的兼容处理）
+ *     · 移除 searchInput / searchCase 恢复逻辑
+ *     · 保留全部其余字段
+ *
+ *   四、其他能力保留
+ *     · 保存并发保护（autoSaveInProgress / autoSavePendingRetry）
  *     · DECRYPT_FAILED / JSON_PARSE_FAILED 错误分类
- *     · autoLoadSnapshot 镜像
+ *     · applyFullUiState 微任务渲染
+ *     · 启动恢复一致性校验
  * ============================================================================
  */
 
@@ -317,10 +323,31 @@ export function syncDarkModeToggleButtonText() {
 // 状态采集
 // ============================================================================
 
+/**
+ * 采集需要持久化的应用状态。
+ *
+ * ★ 关键设计：只采集"用户配置"与"界面偏好"两类字段，绝不采集"工作内容"。
+ *
+ *   持久化（跨会话保留）：
+ *     · 规则表（customRules / defaultRules / defaultRulesName）
+ *     · 预设库（presets / activePresetId）
+ *     · 界面偏好（各种勾选、主题、列宽、同步模式等）
+ *
+ *   不持久化（每次打开从零开始）：
+ *     · 源文本（sourceText）
+ *     · 结果文本（resultText）
+ *     · 结果区搜索词（searchInput）
+ *     · 结果区搜索大小写敏感开关（searchCase）
+ *
+ *   兼容性说明：
+ *     旧版本快照可能包含 sourceText / resultText / searchInput / searchCase，
+ *     这里主动不采集，applyFullUiState 也会主动忽略这些字段。
+ */
 export function collectFullUiState() {
     return {
-        sourceText: DOM.sourceTextarea ? DOM.sourceTextarea.value : '',
-        resultText: DOM.resultTextarea ? DOM.resultTextarea.value : '',
+        // ★ 修订：不再采集文本内容
+        //   sourceText:  （已移除）
+        //   resultText:  （已移除）
 
         flagG: DOM.globalFlagG ? DOM.globalFlagG.checked : AppState.flagG,
         flagI: DOM.globalFlagI ? DOM.globalFlagI.checked : AppState.flagI,
@@ -360,12 +387,9 @@ export function collectFullUiState() {
             : AppState.helpPanelOpen,
         columnWidths: AppState.columnWidths.slice(),
 
-        searchInput: DOM.resultSearchInput
-            ? DOM.resultSearchInput.value
-            : '',
-        searchCase: DOM.resultSearchCase
-            ? DOM.resultSearchCase.checked
-            : false,
+        // ★ 修订：不再采集结果区搜索词与大小写敏感开关
+        //   searchInput: （已移除）
+        //   searchCase:  （已移除）
 
         searchDataSource: AppState.searchDataSource,
         presetSearchScope: AppState.presetSearchScope,
@@ -431,20 +455,29 @@ export function collectFullUiState() {
 // 状态应用
 // ============================================================================
 
+/**
+ * 把持久化状态应用到运行时。
+ *
+ * ★ 关键设计：只恢复"用户配置"与"界面偏好"，绝不恢复"工作内容"。
+ *
+ *   兼容性：
+ *     旧版本快照可能包含 sourceText / resultText / searchInput / searchCase，
+ *     本函数主动忽略这些字段 —— 保证旧用户升级后行为一致。
+ *
+ *   注意：
+ *     本函数不会主动清空 DOM 中的 textarea。
+ *     原因：settings-io 的导入也会走本函数，主动清空会让用户正在编辑的
+ *     文本消失。启动时 DOM 本来就是空的，所以无需额外处理。
+ */
 export function applyFullUiState(state) {
     if (!state || typeof state !== 'object') return;
 
     AppState.isApplyingImportedState = true;
 
     try {
-        if (typeof state.sourceText === 'string') {
-            if (DOM.sourceTextarea) DOM.sourceTextarea.value = state.sourceText;
-            AppState.sourceText = state.sourceText;
-        }
-        if (typeof state.resultText === 'string') {
-            if (DOM.resultTextarea) DOM.resultTextarea.value = state.resultText;
-            AppState.resultText = state.resultText;
-        }
+        // ★ 修订：不再恢复文本内容
+        //   即使 state.sourceText / state.resultText 存在，也主动忽略。
+        //   AppState.sourceText / resultText 保持 '' 与当前 DOM 值不动。
 
         if (typeof state.flagG === 'boolean') {
             AppState.flagG = state.flagG;
@@ -544,18 +577,8 @@ export function applyFullUiState(state) {
             AppState.lastAppliedColumnWidthsSignature = '';
         }
 
-        if (typeof state.searchInput === 'string') {
-            AppState.searchInput = state.searchInput;
-            if (DOM.resultSearchInput) {
-                DOM.resultSearchInput.value = state.searchInput;
-            }
-        }
-        if (typeof state.searchCase === 'boolean') {
-            AppState.searchCase = state.searchCase;
-            if (DOM.resultSearchCase) {
-                DOM.resultSearchCase.checked = state.searchCase;
-            }
-        }
+        // ★ 修订：不再恢复结果区搜索词与大小写敏感开关
+        //   旧快照若含 searchInput / searchCase，本函数主动忽略。
 
         if (
             state.searchDataSource === SEARCH_DATA_SOURCE.ALL ||
@@ -841,13 +864,13 @@ export async function saveStateImmediately() {
 // ============================================================================
 
 /**
- * ★ 改进：持久化权限申请改为延后触发。
+ * 调度持久化存储权限申请。
  *
- * 流程：
- *   1. 若 CONFIG.STORAGE_PERSIST_DEFERRED === false → 立即申请
- *   2. 否则挂载一次性触发器，等待首次交互后申请
- *   3. 无论哪种方式，结果都会写入 AppState.persistentStorageGranted
- *      并镜像到 localStorage
+ * · 若 CONFIG.STORAGE_PERSIST_DEFERRED === false → 立即申请
+ * · 否则挂载一次性触发器，等待首次交互后申请
+ *
+ * 无论哪种方式，结果都会写入 AppState.persistentStorageGranted
+ * 并镜像到 localStorage。
  */
 function schedulePersistentStorageRequest() {
     function applyResult(result) {
@@ -883,8 +906,15 @@ function schedulePersistentStorageRequest() {
     }
 }
 
+/**
+ * 启动时加载状态。
+ *
+ * ★ 说明：
+ *   本函数返回的 loaded / reason 仅描述"配置恢复"是否成功。
+ *   文本内容始终由 DOM 决定（启动时即空），不参与本流程。
+ */
 export async function loadStateOnStartup() {
-    // ★ 持久化权限：延后 / 立即由 schedulePersistentStorageRequest 决定
+    // 持久化权限：延后 / 立即由 schedulePersistentStorageRequest 决定
     schedulePersistentStorageRequest();
 
     const mirroredAutoLoadSnapshot = loadLocalBackup(
@@ -892,7 +922,7 @@ export async function loadStateOnStartup() {
         true
     );
 
-    // ---- 分支 1：用户主动关闭"启动时自动加载快照" ----
+    // ---- 分支 1：用户主动关闭"启动时恢复规则与设置" ----
     if (mirroredAutoLoadSnapshot === false) {
         initializeDefaultState();
 
@@ -1035,8 +1065,9 @@ function initializeDefaultState(options) {
     AppState.columnWidths = [];
     AppState.lastAppliedColumnWidthsSignature = '';
 
-    AppState.searchInput = '';
-    AppState.searchCase = false;
+    // ★ 说明：sourceText / resultText / searchInput / searchCase 不再初始化，
+    //   因为它们本来就是 AppState 的初始值（'' / false）。
+
     AppState.searchDataSource = SEARCH_DATA_SOURCE.ALL;
     AppState.presetSearchScope = 'all';
 
@@ -1089,13 +1120,6 @@ function initializeDefaultState(options) {
     }
     if (DOM.quickReplacementInput) {
         DOM.quickReplacementInput.value = AppState.quickReplacement;
-    }
-
-    if (DOM.resultSearchInput) {
-        DOM.resultSearchInput.value = AppState.searchInput;
-    }
-    if (DOM.resultSearchCase) {
-        DOM.resultSearchCase.checked = AppState.searchCase;
     }
 
     AppState.existenceIndexCache.isDirty = true;

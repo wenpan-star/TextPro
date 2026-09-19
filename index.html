@@ -122,7 +122,10 @@
                     <label><input type="checkbox" id="loopUntilStable"> 🔁 循环执行直到文本稳定</label>
                 </div>
                 <div class="safety-option">
-                    <label title="关闭后，下次打开页面不会自动恢复上次的编辑状态，而是从空文本开始"><input type="checkbox" id="autoLoadSnapshotCheck" checked> 🔄 启动时自动恢复上次状态</label>
+                    <label title="关闭后，下次打开页面不会恢复规则与设置，全部使用默认值（文本内容始终不保存，每次打开都从空白开始）">
+                        <input type="checkbox" id="autoLoadSnapshotCheck" checked>
+                        🔄 启动时恢复规则与设置
+                    </label>
                 </div>
             </div>
 
@@ -140,8 +143,8 @@
                     <button id="presetManagerBtn" class="outline">⭐ 我的预设</button>
                 </div>
                 <div class="toolbar-group">
-                    <button id="saveSnapshotBtn" class="outline" title="跳过防抖，立即把当前状态写入磁盘">💾 立即保存</button>
-                    <button id="exportFullConfigBtn" class="outline" title="导出包含规则表、预设库、界面状态、文本内容的完整配置">📤 导出设置</button>
+                    <button id="saveSnapshotBtn" class="outline" title="跳过防抖，立即把当前配置写入磁盘">💾 立即保存</button>
+                    <button id="exportFullConfigBtn" class="outline" title="导出包含规则表、预设库、界面状态的完整配置（不含文本内容）">📤 导出设置</button>
                     <button id="importFullConfigBtn" class="outline" title="从 JSON 文件导入配置">📥 导入设置</button>
                     <button id="resetDefaultRulesBtn" class="outline danger-outline" title="清空规则表">↻ 恢复出厂</button>
                 </div>
@@ -210,9 +213,9 @@
                     <strong>搜索预设：</strong> 预设搜索框支持搜索预设名和规则内容。搜索框右侧按钮可切换"字段范围（🔍/🏷️）"与"数据源范围（🌐/🏷️）"。在过滤视图下，上移/下移按钮按可见列表的相对顺序移动。<br>
                     <strong>重复项提示：</strong> 主表若出现内容相同的规则，规则名称旁会显示 ⚠️ 徽章"与 #N 重复"。<br>
                     <strong>大文本处理：</strong> 支持最大 20MB 文本。超过 1MB 时自动使用后台计算线程处理，界面保持流畅，可实时查看进度，可随时点击"✕ 取消"终止。<br>
-                    <strong>状态持久化：</strong> 所有设置与界面状态会在下次打开时自动恢复（前提是"🔄 启动时自动恢复上次状态"保持开启）。<br>
+                    <strong>状态持久化：</strong> 规则表、预设库、界面设置（勾选状态、暗色模式、列宽、同步滚动模式、当前工作区等）会在下次打开时自动恢复（前提是"🔄 启动时恢复规则与设置"保持开启）。<strong>文本内容一律不保存</strong>，每次打开都从空白开始；源文本 / 结果文本 / 结果区搜索词均不会被持久化。<br>
                     <strong>持久化存储权限：</strong> 为提高数据存活率，本工具会在您首次与页面交互时申请"持久化存储"权限。若浏览器拒绝，顶部会显示提示条，建议收藏本页面或使用"导出设置"备份。<br>
-                    <strong>导入导出：</strong> 完整配置包含文本内容、默认规则、预设库、界面布局、当前工作区等状态，跨设备可用。导入时默认采用"合并"策略，同名项以文件为准，新项追加。<br>
+                    <strong>导入导出：</strong> 完整配置包含默认规则、预设库、界面布局、当前工作区等状态，跨设备可用。<strong>不包含任何文本内容</strong>。导入时默认采用"合并"策略，同名项以文件为准，新项追加。<br>
                     <strong>快捷键：</strong> Ctrl+S 立即保存；Ctrl+Shift+D 切换暗色模式。
                 </div>
             </div>
