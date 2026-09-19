@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <!--
+#  ============================================================================
+#  favicon.svg — TextPro 图标
+# ============================================================================
+
+    设计元素：
+      · 圆角矩形底 —— 现代、亲和
+      · 渐变填充 —— 深蓝到浅蓝，表达专业
+      · 扫帚符号 —— 文本"净化"的核心隐喻
+      · 文本线条 —— 被清扫的文字
+
+    颜色取自应用主色系：
+      · #1f5e7e 主色（按钮）
+      · #0f6b8c 深色（primary）
+      · #3b82f6 高亮蓝（焦点）
+    ============================================================================
+    -->
+    <defs>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1f5e7e"/>
+            <stop offset="100%" stop-color="#0f6b8c"/>
+        </linearGradient>
+        <linearGradient id="broomGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffd84d"/>
+            <stop offset="100%" stop-color="#eab308"/>
+        </linearGradient>
+    </defs>
+
+    <!-- 圆角矩形底 -->
+    <rect x="8" y="8" width="112" height="112" rx="24" ry="24" fill="url(#bgGradient)"/>
+
+    <!-- 文本线条（被清扫的文字） -->
+    <g stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.35">
+        <line x1="30" y1="42" x2="98" y2="42"/>
+        <line x1="30" y1="56" x2="80" y2="56"/>
+        <line x1="30" y1="70" x2="98" y2="70"/>
+        <line x1="30" y1="84" x2="70" y2="84"/>
+    </g>
+
+    <!-- 扫帚：柄 -->
+    <line x1="86" y1="30" x2="60" y2="86" stroke="#8b5a2b" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- 扫帚：刷头 -->
+    <path d="M 52 84 L 72 80 L 78 96 L 58 100 Z"
+          fill="url(#broomGradient)"
+          stroke="#c8880a"
+          stroke-width="2"
+          stroke-linejoin="round"/>
+
+    <!-- 扫帚：刷毛纹路 -->
+    <g stroke="#c8880a" stroke-width="1.5" opacity="0.6">
+        <line x1="56" y1="84" x2="62" y2="99"/>
+        <line x1="62" y1="83" x2="68" y2="98"/>
+        <line x1="68" y1="82" x2="74" y2="97"/>
+    </g>
+
+    <!-- 装饰性小点（净化后的清爽感） -->
+    <circle cx="38" cy="98" r="3" fill="#ffffff" opacity="0.5"/>
+    <circle cx="48" cy="104" r="2" fill="#ffffff" opacity="0.35"/>
+    <circle cx="30" cy="104" r="2" fill="#ffffff" opacity="0.35"/>
+</svg>

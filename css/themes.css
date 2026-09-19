@@ -1,0 +1,55 @@
+/* ============================================================================
+ * themes.css — 主题变量定义
+ * ============================================================================
+ *
+ * 本文件职责：
+ *   1. 定义浅色主题（默认）的所有 CSS 变量
+ *   2. 定义暗色主题（body.dark）的所有 CSS 变量覆盖
+ *
+ * 【设计说明】
+ *   - 采用"变量 + 类切换"模式：所有组件样式引用变量，
+ *     切换主题只需在 body 上切换 .dark 类。
+ *   - 变量命名采用"语义化"方式（--bg-body / --card-bg / --text-primary），
+ *     而非"颜色值"方式（--gray-100 / --blue-500）。
+ *   - 所有变量必须成对出现（浅色 + 暗色），保证切换无遗漏。
+ * ============================================================================ */
+
+/* ---------- 浅色主题（默认） ---------- */
+:root {
+    --bg-body: #eef2f7;
+    --card-bg: #ffffff;
+    --card-border: #e9edf2;
+    --header-bg: #f8fafd;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --input-border: #cbdde9;
+    --input-bg: #fff;
+    --info-bar-bg: #eef2fa;
+    --btn-outline-border: #b9cfdf;
+    --btn-outline-color: #1f5e7e;
+    --search-bar-bg: #f7f9fc;
+    --table-header-bg: #f2f6fb;
+    --table-border: #e0e6ef;
+    --select-bg: #ffffff;
+    --resize-handle-color: #90b4d4;
+}
+
+/* ---------- 暗色主题 ---------- */
+body.dark {
+    --bg-body: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #334155;
+    --header-bg: #0f172a;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --input-border: #475569;
+    --input-bg: #0f172a;
+    --info-bar-bg: #1e293b;
+    --btn-outline-border: #475569;
+    --btn-outline-color: #94a3b8;
+    --search-bar-bg: #1e293b;
+    --table-header-bg: #0f172a;
+    --table-border: #334155;
+    --select-bg: #1e293b;
+    --resize-handle-color: #5f7f9e;
+}
