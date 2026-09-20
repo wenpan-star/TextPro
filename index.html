@@ -1,0 +1,392 @@
+<!-- filename: index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>TextPro 文本净化工具 · 安全增强版</title>
+    <link rel="icon" type="image/svg+xml" href="public/favicon.svg">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-container">
+
+    <div id="storageUnavailableBanner" class="status-banner status-banner-warning" style="display:none;">
+        ⚠️ 浏览器存储不可用，本次编辑不会被持久化（可能处于无痕模式或存储配额耗尽）
+    </div>
+    <div id="storagePersistenceBanner" class="status-banner status-banner-info" style="display:none;">
+        ℹ️ 存储持久化权限未获得：浏览器可能在存储紧张时自动清除本地数据。建议收藏本页面或使用"导出设置"备份。
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title-wrapper">
+                🧹 TextPro 文本净化工具 · 安全增强版
+                <span class="warning-badge" title="JS模式可执行自定义代码，请仅使用可信规则">⚠️ JS模式高危</span>
+                <span id="jsTrustIndicator" class="status-indicator-inline" style="display:none;" role="button" tabindex="0" title="点击撤销信任">
+                    🔒 JS 模式需确认
+                </span>
+            </span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button id="importBtn" class="outline">📂 导入 TXT</button>
+                <button id="exportBtn" class="outline">💾 导出 TXT</button>
+                <button id="clearAllBtn" class="outline">🗑️ 清空所有</button>
+                <button id="statsBtn" class="outline">📊 统计</button>
+                <button id="darkModeToggle" class="outline dark-toggle">🌙 暗色</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="two-columns">
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong>📄 源文本</strong>
+                        <button id="copySourceBtn" class="outline" style="padding: 2px 12px;">复制</button>
+                    </div>
+                    <textarea id="sourceText" placeholder="粘贴或导入文本..." spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+                </div>
+                <div>
+                    <div class="result-header">
+                        <strong>✨ 处理结果</strong>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button id="copyResultBtn" class="outline" style="padding: 2px 12px;">复制</button>
+                            <button id="convertResultToSourceBtn" class="outline" style="padding: 2px 12px;" title="把结果作为新的源文本，方便在上次结果基础上继续迭代">📋 结果→源</button>
+                            <button id="swapSourceResultBtn" class="outline" style="padding: 2px 12px;" title="交换源文本与结果文本">🔁 交换</button>
+                            <button id="resetResultBtn" class="outline" style="padding: 2px 12px;" title="清空结果文本">↻ 重置</button>
+                            <select id="syncScrollSelect" class="sync-select" title="同步滚动模式">
+                                <option value="proportion">📐 比例同步</option>
+                                <option value="pixel">📏 像素同步</option>
+                                <option value="off">🔒 关闭同步</option>
+                            </select>
+                        </div>
+                    </div>
+                    <textarea id="resultText" placeholder="运行规则后显示结果..." spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+                    <div class="search-bar" id="resultSearchBar">
+                        <input type="text" id="resultSearchInput" placeholder="🔍 搜索处理结果..." spellcheck="false" autocorrect="off" autocapitalize="off" />
+                        <label class="search-case-label"><input type="checkbox" id="resultSearchCase" /> 区分大小写</label>
+                        <button id="resultSearchPrev" class="icon-btn nav-btn">▲</button>
+                        <button id="resultSearchNext" class="icon-btn nav-btn">▼</button>
+                        <span class="search-count" id="resultSearchCount">0/0</span>
+                        <button id="resultSearchUseForReplace" class="icon-btn" title="把当前搜索词填入快速替换的正则输入框">⤴ 用于替换</button>
+                        <button id="resultSearchClear" class="icon-btn clear-btn">✕</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span>⚡ 快速替换（临时）</span>
+            <span class="badge">不保存至规则表，一次性执行</span>
+        </div>
+        <div class="card-body">
+            <div class="quick-replace-bar">
+                <div class="field">
+                    <label>📐 正则表达式</label>
+                    <input type="text" id="quickPattern" placeholder="例如: 版主提醒|广告行" spellcheck="false" autocorrect="off" autocapitalize="off">
+                </div>
+                <div class="field small">
+                    <label>✏️ 替换文本</label>
+                    <input type="text" id="quickReplacement" placeholder="支持 $1 和 \n \r \t，\$ 表示字面 $" spellcheck="false" autocorrect="off" autocapitalize="off">
+                </div>
+                <div class="flag-group" style="background: transparent; padding:0;">
+                    <label><input type="checkbox" id="quickG" checked> 全局</label>
+                    <label><input type="checkbox" id="quickI"> 忽略大小写</label>
+                    <label><input type="checkbox" id="quickM"> 多行</label>
+                    <label><input type="checkbox" id="quickJsMode"> 🧩 JS模式</label>
+                </div>
+                <button id="quickApplyBtn" class="primary" style="background:#0f6b8c;">▶ 快速替换</button>
+                <button id="quickSaveAsRuleBtn" class="outline" title="把当前快速替换配置存为一条规则，追加到主表">➕ 存为规则</button>
+            </div>
+            <div class="info-bar" style="margin-top: 0;">
+                <span>💡 快速替换仅作用于当前结果文本，不会修改规则表。JS模式同样受安全检测保护。</span>
+                <span>🚀 大文本（≥ 1MB）将自动使用后台计算线程，界面保持流畅。</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span>📋 自定义替换表（顺序批量运行）</span>
+            <span class="badge">上移/下移/置顶/置底 | 独立JS模式 | 可拖拽列宽 | 最大 20MB</span>
+        </div>
+        <div class="card-body">
+            <div class="global-control-bar">
+                <div class="flag-group">
+                    <label><input type="checkbox" id="flagG" checked> 全局(g)</label>
+                    <label><input type="checkbox" id="flagI"> 忽略大小写(i)</label>
+                    <label><input type="checkbox" id="flagM"> 多行(m)</label>
+                </div>
+                <div class="loop-control">
+                    <label><input type="checkbox" id="loopUntilStable"> 🔁 循环执行直到文本稳定</label>
+                </div>
+                <div class="safety-option">
+                    <label title="关闭后，下次打开页面不会恢复规则与设置，全部使用默认值（文本内容始终不保存，每次打开都从空白开始）">
+                        <input type="checkbox" id="autoLoadSnapshotCheck" checked>
+                        🔄 启动时恢复规则与设置
+                    </label>
+                </div>
+            </div>
+
+            <div id="activePresetIndicator" class="active-preset-indicator" style="display:none;">
+                <span class="active-preset-label">当前工作区：</span>
+                <button id="syncToActivePresetBtn" class="primary" style="font-size:0.75rem; min-height:30px;">💾 保存回预设</button>
+                <button id="clearActivePresetBtn" class="outline" style="font-size:0.75rem; min-height:30px;">切换回默认规则</button>
+            </div>
+
+            <div class="table-toolbar">
+                <div class="toolbar-group">
+                    <button id="addRuleBtn" class="outline">➕ 添加规则</button>
+                    <button id="templateBtn" class="outline">📚 预定义模板</button>
+                    <span class="toolbar-divider"></span>
+                    <button id="presetManagerBtn" class="outline">⭐ 我的预设</button>
+                </div>
+                <div class="toolbar-group">
+                    <button id="saveSnapshotBtn" class="outline" title="跳过防抖，立即把当前配置写入磁盘">💾 立即保存</button>
+                    <button id="exportFullConfigBtn" class="outline" title="导出包含规则表、预设库、界面状态的完整配置（不含文本内容）">📤 导出设置</button>
+                    <button id="importFullConfigBtn" class="outline" title="从 JSON 文件导入配置">📥 导入设置</button>
+                    <button id="resetDefaultRulesBtn" class="outline danger-outline" title="清空规则表">↻ 恢复出厂</button>
+                </div>
+                <div class="toolbar-group">
+                    <button id="batchRunCheckedBtn" class="primary">⚡ 批量运行</button>
+                    <button id="selectAllRulesBtn" class="outline">☑ 全选</button>
+                    <button id="deselectAllRulesBtn" class="outline">☐ 全不选</button>
+                </div>
+            </div>
+
+            <div id="batchRunErrorBar" class="batch-run-error-bar" style="display:none;">
+                <div class="batch-run-error-header">
+                    <span>⚠️ 部分规则执行出错</span>
+                    <div style="display:flex; gap:8px;">
+                        <button id="batchRunErrorToggle" class="icon-btn" style="font-size:11px; min-height:28px;">▲ 收起</button>
+                        <button id="batchRunErrorCopy" class="icon-btn" style="font-size:11px; min-height:28px;">📋 复制</button>
+                    </div>
+                </div>
+                <div id="batchRunErrorList" class="batch-run-error-list"></div>
+            </div>
+
+            <div id="batchRunProgressBar" class="batch-run-progress-bar" style="display:none;">
+                <div class="batch-run-progress-info">
+                    <span id="batchRunProgressText">准备中...</span>
+                    <span id="batchRunProgressPercent" class="batch-run-progress-percent">0%</span>
+                </div>
+                <div class="batch-run-progress-track">
+                    <div id="batchRunProgressFill" class="batch-run-progress-fill"></div>
+                </div>
+                <button id="batchRunCancelBtn" class="icon-btn" title="取消批量运行">✕ 取消</button>
+            </div>
+
+            <div class="scrollable-table">
+                <table class="rule-table" id="customRuleTable">
+                    <thead>
+                        <tr><th>运行</th><th>正则</th><th>JS模式</th><th>序号</th><th>规则名称</th><th>正则表达式</th><th>替换文本</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="customRuleTbody"></tbody>
+                </table>
+            </div>
+
+            <div class="info-bar">
+                <span>✅ 【JS模式】替换文本作为函数体 (result→返回值)。普通模式支持 $1 和转义符，\$ 表示字面 $。</span>
+                <span>🔧 批量运行遇到错误规则将自动跳过并汇总到上方错误条。</span>
+                <span>📌 提示：鼠标拖动表格列右侧边缘可调整列宽，配置导出时会自动保存布局。</span>
+            </div>
+
+            <div class="help-section">
+                <div class="help-summary" id="helpToggle">📖 显示/隐藏 帮助说明</div>
+                <div class="help-content" id="helpContent">
+                    <strong>正则表达式语法：</strong> 支持 JavaScript 正则，如 \d 匹配数字，\s 空白符，捕获组用 $1 $2 引用。替换文本里写 <code>\$</code> 表示字面美元符号（避免被解释为捕获组）。<br>
+                    <strong>JS 模式：</strong> 函数体接收参数 result (匹配的完整字符串)，返回替换后的字符串。示例：<code>return result.toUpperCase();</code><br>
+                    <strong>@js: 前缀：</strong> 在替换文本开头加 <code>@js:</code> 会自动启用 JS 模式；如需输出字面 "@js:"，使用 <code>@@js:</code> 转义。<br>
+                    <strong>安全警告：</strong> JS模式可能执行任意代码，切勿使用不可信规则。本工具已拦截危险API（fetch, eval, document, self, Reflect, WebAssembly 等），并对字符串拼接绕过做了预折叠检测。<br>
+                    <strong>JS 信任模型（按规则）：</strong> 每条规则首次启用 JS 模式时会弹出确认；同意后该规则在本设备上不再重复询问。可通过顶部 🔓 指示器一键撤销全部规则信任。JS 模式全部在后台计算线程运行，即使出现死循环也不会卡死页面。<br>
+                    <strong>快速替换：</strong> 临时执行一条规则，不保存到规则表，方便测试。点击"存为规则"可固化到主表。<br>
+                    <strong>迭代式净化：</strong> 批量运行后如不满意，点击"📋 结果→源"即可在上次结果基础上继续处理。<br>
+                    <strong>核心概念：</strong> 本工具区分三个概念 —— <strong>默认规则</strong> 是置顶的特殊预设（不可删除，可编辑、可重命名），<strong>命名预设</strong> 是用户创建的普通预设，<strong>当前工作区</strong> 是 activePresetId 指向的那个预设（可以是默认规则或任意命名预设）。<br>
+                    <strong>我的预设（编辑方式）：</strong> 打开"我的预设"面板可以看到所有预设，包括顶部的"📋 默认规则"。编辑任意预设的规则不会影响其他预设，每个预设的内容独立存储。若编辑的预设正是当前工作区，主表会同步更新。<br>
+                    <strong>主表↔预设自动同步：</strong> 当当前工作区是命名预设时，编辑主表规则后会自动同步回预设（防抖 400ms）。无需手动点击"保存回预设"（该按钮保留用于强制立即同步）。存在未同步的修改时，关闭页面会弹出离开确认。<br>
+                    <strong>加载此预设：</strong> 把一个命名预设设为当前工作区。当前工作区将被替换为该预设的规则内容。如果当前工作区有未保存的修改，会弹确认框。<br>
+                    <strong>切换回默认规则：</strong> 把当前工作区从命名预设切换为默认规则。仅当当前工作区是命名预设时此按钮才可见。<br>
+                    <strong>编辑默认规则：</strong> 在"我的预设"面板选中"默认规则"后，可以像编辑普通预设一样增删改规则。重命名默认规则需要二次确认。<br>
+                    <strong>→追加：</strong> 预设中的每条规则卡片有"→追加"按钮。点击后弹出目标选择器，可将该规则追加到默认规则或任意其他预设。<br>
+                    <strong>存在性徽章：</strong> 规则卡片底部显示"存在于：📋 默认规则 · ⭐ 其他 N 处"。点击可展开查看具体哪些预设中存在。<br>
+                    <strong>搜索预设：</strong> 预设搜索框支持搜索预设名和规则内容。搜索框右侧按钮可切换"字段范围（🔍/🏷️）"与"数据源范围（🌐/🏷️）"。在过滤视图下，上移/下移按钮按可见列表的相对顺序移动。<br>
+                    <strong>重复项提示：</strong> 主表若出现内容相同的规则，规则名称旁会显示 ⚠️ 徽章"与 #N 重复"。<br>
+                    <strong>大文本处理：</strong> 支持最大 20MB 文本。超过 1MB 时自动使用后台计算线程处理，界面保持流畅，可实时查看进度，可随时点击"✕ 取消"终止。<br>
+                    <strong>状态持久化：</strong> 规则表、预设库、界面设置（勾选状态、暗色模式、列宽、同步滚动模式、当前工作区等）会在下次打开时自动恢复（前提是"🔄 启动时恢复规则与设置"保持开启）。<strong>文本内容一律不保存</strong>，每次打开都从空白开始；源文本 / 结果文本 / 结果区搜索词均不会被持久化。<br>
+                    <strong>持久化存储权限：</strong> 为提高数据存活率，本工具会在您首次与页面交互时申请"持久化存储"权限。若浏览器拒绝，顶部会显示提示条，建议收藏本页面或使用"导出设置"备份。<br>
+                    <strong>导入导出：</strong> 完整配置包含默认规则、预设库、界面布局、当前工作区等状态，跨设备可用。<strong>不包含任何文本内容</strong>。导入时默认采用"合并"策略，同名项以文件为准，新项追加。<br>
+                    <strong>繁简转换：</strong> 通过"📚 预定义模板"面板中的「🌏 繁转简（OpenCC）」/「🌏 简转繁（OpenCC）」按钮调用。使用 OpenCC 库（社区事实标准），非简单字符映射。首次使用需加载约 1MB 词库（约 1~2 秒），之后缓存到 localStorage，即使断网也能正常使用。<br>
+                    <strong>快捷键：</strong> Ctrl+S 立即保存；Ctrl+Shift+D 切换暗色模式。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="templatePanel" class="template-panel" style="display:none;">
+    <div style="font-weight:bold; margin-bottom:6px;">📋 选择模板</div>
+    <button data-pattern="<[^>]*>" data-replacement="" data-name="清除HTML标签" title="删除所有 HTML 标签">🏷️ 清除HTML标签</button>
+    <button data-pattern="\\b\\d{11}\\b" data-replacement="" data-name="删除11位数字(手机号)" title="删除连续 11 位数字">📱 删除手机号</button>
+    <button data-pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}" data-replacement="" data-name="删除邮箱地址" title="删除常见格式的邮箱">📧 删除邮箱</button>
+    <button data-pattern="https?:\\/\\/[^\\s]+" data-replacement="" data-name="删除网址链接" title="删除 http(s) 开头的 URL">🔗 删除网址</button>
+    <button data-pattern="[\\s\\S]{1,100}" data-replacement="@js: return result.slice(0,50)+'…';" data-name="截断长文本(前50字符)" title="用 JS 模式截断">✂️ 截断长文本</button>
+    <button data-pattern="\\n{3,}" data-replacement="\n\n" data-name="合并多余换行(最多2个)" title="把 3 个以上连续换行合并为 2 个">📄 合并空行</button>
+    <button data-pattern="[\\u4e00-\\u9fa5]" data-replacement="" data-name="删除所有汉字" title="删除所有 CJK 统一表意文字">🔤 删除汉字</button>
+    <div style="border-top:1px solid var(--card-border); margin:8px 0 6px;"></div>
+    <button data-convert="t2s" data-name="繁转简（OpenCC）" title="基于 OpenCC 的高精度繁转简（首次使用约 1~2 秒加载）">🌏 繁转简（OpenCC）</button>
+    <button data-convert="s2t" data-name="简转繁（OpenCC）" title="基于 OpenCC 的高精度简转繁（首次使用约 1~2 秒加载）">🌏 简转繁（OpenCC）</button>
+</div>
+
+<div id="presetManagerModalOverlay" class="preset-modal-overlay" style="display:none;">
+    <div class="preset-manager-modal" id="presetManagerModal">
+        <div class="preset-modal-header">
+            <span class="preset-modal-title">⭐ 我的预设</span>
+            <div class="preset-modal-header-actions">
+                <button id="presetHelpBtn" class="preset-help-btn" title="使用提示" aria-label="使用提示" aria-haspopup="true" aria-expanded="false" aria-controls="presetHelpTooltip" type="button">❓</button>
+                <button id="presetModalFullscreenBtn" class="preset-modal-fullscreen" title="放大显示" aria-label="放大显示" type="button">⛶</button>
+                <button id="presetModalCloseBtn" class="preset-modal-close" title="关闭 (Esc)" aria-label="关闭" type="button">✕</button>
+            </div>
+        </div>
+
+        <div class="preset-modal-search-bar">
+            <div class="preset-search-wrapper">
+                <input type="text" id="presetSearchInput" placeholder="🔍 搜索预设名或规则内容..." autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" />
+                <button id="presetSearchScopeBtn" class="preset-search-scope-btn" title="切换搜索字段范围（名称+内容 / 仅名称）" type="button">🔍</button>
+                <button id="presetSearchDataSourceBtn" class="preset-search-scope-btn preset-search-datasource-btn" title="切换搜索数据源（全部预设 / 当前选中项）" type="button">🌐</button>
+            </div>
+        </div>
+
+        <div class="preset-modal-body">
+            <div class="preset-modal-sidebar">
+                <div class="preset-create-actions">
+                    <button id="presetCreateFromCurrentBtn" class="primary" type="button">📋 从当前工作区创建</button>
+                    <button id="presetCreateBlankBtn" class="outline" type="button">➕ 新建空白</button>
+                </div>
+                <div class="preset-list" id="presetListContainer"></div>
+            </div>
+
+            <div class="preset-modal-detail" id="presetDetailPanel">
+                <div class="preset-detail-empty" id="presetDetailEmptyHint">
+                    <div class="preset-empty-icon">⭐</div>
+                    <div class="preset-empty-title">还没有选中预设</div>
+                    <div class="preset-empty-desc">从左侧选择一个预设查看详情</div>
+                    <div class="preset-empty-actions">
+                        <button id="presetEmptyCreateFromCurrentBtn" class="primary" type="button">📋 从当前工作区创建</button>
+                        <button id="presetEmptyCreateBlankBtn" class="outline" type="button">➕ 创建空白预设</button>
+                    </div>
+                </div>
+                <div class="preset-detail-content" id="presetDetailContent" style="display:none;">
+                    <div class="preset-detail-header">
+                        <button id="presetMobileBackBtn" class="preset-mobile-back-btn" type="button">← 返回</button>
+                        <span class="preset-name-label">预设名称：</span>
+                        <span class="preset-name-display" id="presetNameDisplay"></span>
+                        <button id="presetNameEditBtn" class="preset-rename-btn" title="重命名" aria-label="重命名" type="button">✏️</button>
+                        <span class="preset-detail-meta" id="presetDetailMeta"></span>
+                    </div>
+                    <div class="preset-rules-wrapper">
+                        <div class="preset-rules-list" id="presetRulesListContainer"></div>
+                    </div>
+                    <div class="preset-add-rule-wrapper">
+                        <button id="presetAddRuleBtn" class="outline" type="button">+ 添加规则</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preset-modal-footer">
+            <div class="preset-footer-left">
+                <button id="presetSaveAsBtn" class="outline" disabled type="button">复制为新预设</button>
+                <button id="presetDeleteBtn" class="outline preset-danger-btn" disabled type="button">删除预设</button>
+            </div>
+            <div class="preset-footer-right">
+                <button id="presetCancelBtn" class="outline" type="button">取消 (Esc)</button>
+                <button id="presetApplyBtn" class="primary" disabled type="button">加载为当前工作区</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="presetHelpTooltip" class="preset-help-tooltip" style="display:none;" role="tooltip" aria-hidden="true">
+    <div class="preset-help-tooltip-title">💡 使用提示</div>
+    <ul class="preset-help-tooltip-list">
+        <li>顶部「📋 默认规则」是置顶的特殊预设</li>
+        <li>默认规则与命名预设完全平级</li>
+        <li>当前工作区是带 ● 徽章的预设</li>
+        <li>点击预设查看规则详情</li>
+        <li>规则卡片「→追加」可送到其他预设</li>
+        <li>规则卡片底部显示存在性徽章</li>
+        <li>预设内编辑后自动保存</li>
+        <li>编辑活动预设时，主表会同步更新</li>
+        <li>搜索框右侧 🔍 切换字段范围（名称+内容 / 仅名称）</li>
+        <li>搜索框右侧 🌐 切换数据源（全部预设 / 当前选中项）</li>
+        <li>过滤视图下「↑↓」按可见列表相对顺序移动</li>
+        <li>按 Esc 只关闭最上层浮层或模态框</li>
+    </ul>
+</div>
+
+<div id="appendTargetModalOverlay" class="append-target-modal-overlay" style="display:none;">
+    <div id="appendTargetModal" class="append-target-modal">
+        <div class="append-target-modal-header">
+            <span class="append-target-modal-title">📋 追加到...</span>
+            <button id="appendTargetCloseBtn" class="append-target-modal-close" title="关闭 (Esc)" aria-label="关闭" type="button">✕</button>
+        </div>
+        <div class="append-target-modal-preview" id="appendTargetRulePreview"></div>
+        <div class="append-target-modal-search">
+            <input type="text" id="appendTargetSearchInput" placeholder="🔍 搜索预设名..." autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" />
+        </div>
+        <div class="append-target-modal-list" id="appendTargetListContainer"></div>
+        <div class="append-target-modal-footer">
+            <button id="appendTargetCancelBtn" class="outline" type="button">取消 (Esc)</button>
+        </div>
+    </div>
+</div>
+
+<div id="importModeOverlay" class="modal-overlay" style="display:none;">
+    <div id="importModeDialog" class="mode-dialog">
+        <div class="mode-dialog-title">📥 导入配置</div>
+        <div class="mode-dialog-summary" id="importModeSummary"></div>
+        <div class="mode-dialog-options">
+            <label class="mode-option">
+                <input type="radio" name="importMode" id="importModeOverwrite" value="overwrite">
+                <div class="mode-option-text">
+                    <div class="mode-option-name">完全覆盖</div>
+                    <div class="mode-option-desc">清空当前配置，使用文件中的配置</div>
+                </div>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="importMode" id="importModeAppend" value="append">
+                <div class="mode-option-text">
+                    <div class="mode-option-name">追加</div>
+                    <div class="mode-option-desc">保留现有配置，仅添加文件中不重名的项</div>
+                </div>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="importMode" id="importModeMerge" value="merge" checked>
+                <div class="mode-option-text">
+                    <div class="mode-option-name">合并（推荐）</div>
+                    <div class="mode-option-desc">同名项以文件为准，新项追加，不会丢失现有配置</div>
+                </div>
+            </label>
+        </div>
+        <div class="mode-dialog-footer">
+            <button id="importModeCancelBtn" class="outline" type="button">取消</button>
+            <button id="importModeConfirmBtn" class="primary" type="button">确定导入</button>
+        </div>
+    </div>
+</div>
+
+<noscript>
+    <div class="noscript-fallback">
+        <div class="noscript-fallback-title">⚠️ 需要启用 JavaScript</div>
+        <div class="noscript-fallback-desc">
+            TextPro 文本净化工具依赖 JavaScript 与 ES Module 运行。<br>
+            请在浏览器设置中启用 JavaScript，然后刷新本页面。
+        </div>
+    </div>
+</noscript>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# filename: 完整目录树.txt
+# ============================================================================
+# 完整目录树状图.txt
+# ============================================================================
+
+TextPro/
+├── index.html
+├── README.md
+├── .gitignore
+├── 完整目录树.txt
+├── css/
+│   ├── styles.css
+│   ├── themes.css
+│   └── components.css
+├── js/
+│   ├── main.js
+│   ├── config.js
+│   ├── state.js
+│   ├── dom.js
+│   ├── toast.js
+│   ├── storage.js
+│   ├── crypto.js
+│   ├── security.js
+│   ├── persistence.js
+│   ├── editor-api.js
+│   ├── replace-core.js
+│   ├── text-processor.js
+│   ├── text-worker.js
+│   ├── rules.js
+│   ├── presets.js
+│   ├── search.js
+│   ├── settings-io.js
+│   ├── changelog.js
+│   ├── script-loader.js       ← 新增：外部脚本多级兜底加载器
+│   ├── zh-convert.js          ← 新增：繁简转换封装（基于 opencc-js）
+│   └── ui.js
+├── public/
+│   └── favicon.svg
+└── vendor/                     ← 新增：自托管第三方库目录
+    └── opencc-js/
+        └── full.js             ← 新增：opencc-js 本地兜底文件

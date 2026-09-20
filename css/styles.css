@@ -1,0 +1,130 @@
+/* ============================================================================
+ * styles.css — 基础重置 + 布局 + 响应式
+ * ============================================================================
+ *
+ * 本文件职责：
+ *   1. 全局重置（box-sizing / tap highlight）
+ *   2. body 与 .app-container 布局
+ *   3. 动画（flash 高亮、淡入等）
+ *   4. 响应式媒体查询（≤780px）
+ *
+ * 依赖：
+ *   · themes.css 先加载（提供变量）
+ *   · components.css 先加载（提供组件样式）
+ *
+ * 【响应式断点边界说明】
+ *
+ *   本文件与 components.css 都有 @media (max-width: 780px) 媒体查询。
+ *   这是"有意拆分"而非重复：
+ *     · styles.css        —— 负责"全局结构层面"的移动端适配
+ *                            （body 内边距、card 内边距、rule-table 紧凑、
+ *                              action-buttons 紧凑、global-control-bar 纵向、
+ *                              quick-replace-bar 纵向、sync-select 紧凑）
+ *     · components.css    —— 负责"组件层面"的移动端适配
+ *                            （preset-modal-*、append-target-*、
+ *                              batch-run-progress-* 等复杂组件的紧凑布局）
+ *
+ *   两者不重叠：搜索各自的选择器即可发现没有交叉。
+ *   若未来合并，请统一迁移到 components.css 的末尾，保持一个断点来源。
+ *
+ * 【本次修订要点】
+ *   · 保持原有全部规则
+ *   · 添加断点边界说明注释
+ * ============================================================================ */
+
+/* ==================== 全局重置 ==================== */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ==================== body 与布局 ==================== */
+body {
+    background: var(--bg-body);
+    font-family: 'Segoe UI', 'Inter', system-ui, 'Consolas', monospace;
+    margin: 0;
+    padding: 20px 16px;
+    transition: background 0.2s, color 0.2s;
+    color: var(--text-primary);
+    touch-action: pan-x pan-y;
+}
+.app-container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ==================== 动画 ==================== */
+@keyframes flashYellow {
+    0% {
+        background-color: #fff9c4;
+    }
+    100% {
+        background-color: var(--input-bg);
+    }
+}
+.flash-highlight {
+    animation: flashYellow 0.3s ease-out;
+}
+
+/* ==================== 响应式（≤780px · 全局结构层） ==================== */
+@media (max-width: 780px) {
+    body {
+        padding: 12px;
+    }
+    .card-body {
+        padding: 1rem;
+    }
+    .card-header {
+        padding: 0.8rem 1rem;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .rule-table th,
+    .rule-table td {
+        padding: 6px 3px;
+        font-size: 11px;
+    }
+    .rule-table input[type="text"] {
+        font-size: 10px;
+        padding: 4px;
+    }
+    .action-buttons {
+        gap: 2px;
+    }
+    .action-buttons .icon-btn {
+        padding: 2px 4px;
+        font-size: 10px;
+        min-width: 30px;
+        min-height: 28px;
+    }
+    .icon-btn {
+        padding: 4px 6px;
+        font-size: 10px;
+        min-width: 40px;
+    }
+    .global-control-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .quick-replace-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .safety-option {
+        margin-left: 0;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    button {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+    .resizer {
+        width: 16px;
+    }
+    .sync-select {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        min-height: 36px;
+    }
+}
